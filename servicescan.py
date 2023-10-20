@@ -5,9 +5,16 @@ import argparse
 import requests
 import json
 import re
+import os
 
 requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
 
+
+def save_response_to_file(url, response_content):
+    filename = f"response_{re.sub('[^a-zA-Z0-9]', '_', url)}.json"
+    with open(filename, 'w') as f:
+        f.write(response_content)
+    print(f"Response saved to {filename}")
 
 def check_vulnerability(url, g_ck_value, cookies, s, proxies, fast_check):
     table_list = [
@@ -62,6 +69,8 @@ def check_vulnerability(url, g_ck_value, cookies, s, proxies, fast_check):
         post_response = s.post(post_url, headers=headers, data=data_payload, verify=False, proxies=proxies)
 
         if post_response.status_code == 200 or post_response.status_code == 201:
+            response_content = post_response.text
+            save_response_to_file(post_url, response_content)
             response_json = post_response.json()
             if 'result' in response_json and response_json['result']:
                 if 'data' in response_json['result']:
