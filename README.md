@@ -62,6 +62,7 @@ Cookie: JSESSIONID=7EB7[REDACTED]B5D07E; glide_user_route=glide.4884750d[REDACTE
 - [Aaron Ringo](https://twitter.com/AlphaRingo) - Code Refactor and implementation of --proxy and --file implementations
 - [Nathan Sanders](https://github.com/pysanders) - Filtering improvement to detect accurate leaking data
 - [Daniel Müller](https://github.com/chdanielmueller) - Implemented requests without the `X-UserToken` header.
+- [Sam Sanderson](https://github.com/ssanderson93) 
 
 ## Disclaimer
 This tool is intended for educational and ethical testing purposes only. The authors are not responsible for any misuse or damage caused by this tool.
