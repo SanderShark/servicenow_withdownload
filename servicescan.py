@@ -9,7 +9,6 @@ import os
 
 requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
 
-
 def save_response_to_file(url, response_content):
     filename = f"response_{re.sub('[^a-zA-Z0-9]', '_', url)}.json"
     with open(filename, 'w') as f:
@@ -60,6 +59,7 @@ def check_vulnerability(url, g_ck_value, cookies, s, proxies, fast_check):
             'Accept': 'application/json',
             'Connection': 'close'
         }
+
         if g_ck_value is None:
             del headers['X-UserToken']
 
@@ -70,18 +70,26 @@ def check_vulnerability(url, g_ck_value, cookies, s, proxies, fast_check):
 
         if post_response.status_code == 200 or post_response.status_code == 201:
             response_content = post_response.text
-            save_response_to_file(post_url, response_content)
             response_json = post_response.json()
-            if 'result' in response_json and response_json['result']:
-                if 'data' in response_json['result']:
-                    if 'count' in response_json['result']['data'] and response_json['result']['data']['count'] > 0:
-                        if response_json['result']['data']['list'] and len(response_json['result']['data']['list']) > 0:
-                            print(f"{post_url} is EXPOSED, and LEAKING data. Check ACLs ASAP.")
-                        else:
-                            print(f"{post_url} is EXPOSED, but data is NOT leaking likely because ACLs are blocking. Mark Widgets as not Public.")
-                        vulnerable_urls.append(post_url)
+
+            if 'result' in response_json and 'data' in response_json['result'] and 'list' in response_json['result']['data']:
+                if len(response_json['result']['data']['list']) > 0:
+                    print(f"{post_url} is EXPOSED and LEAKING data. Check ACLs ASAP.")
+                    save_response_to_file(post_url, response_content) 
+                    vulnerable_urls.append(post_url)
+                else:
+                    print(f"{post_url} is EXPOSED, but data is NOT leaking likely because ACLs are blocking. Mark Widgets as not Public.")
+            else:
+                pass
 
     return vulnerable_urls
+    
+
+def save_response_to_file(url, response_content):
+    filename = f"response_{re.sub('[^a-zA-Z0-9]', '_', url)}.json"
+    with open(filename, 'w') as f:
+        f.write(response_content)
+    print(f"Response saved to {filename}")
 
 
 def check_url_get_headers(url, proxies):
@@ -135,20 +143,20 @@ if __name__ == '__main__':
     args = parser.parse_args()
     fast_check = args.fast_check
     proxy = args.proxy
+
+    urls = []
     if args.url:
-        any_vulnerable = main(args.url, fast_check, proxy)
-    else:
+        urls.append(args.url)
+    elif args.file:
         try:
-            url_file = args.file
-            with open(url_file, 'r') as file:
-                url_list = file.readlines()
-            for url in url_list:
-                if main(url, fast_check, proxy):
-                    any_vulnerable = True  # At least one URL was vulnerable
+            with open(args.file, 'r') as file:
+                urls = [line.strip() for line in file.readlines()]
         except FileNotFoundError:
-            print(f"Could not find {url_file}")
-        except Exception as e:
-            print(f"Error occurred: {e}")
+            print(f"Could not find {args.file}")
+            exit()
+
+    for url in urls:
+        any_vulnerable |= bool(main(url, fast_check, proxy))
 
     if not any_vulnerable:
         print("Scanning completed. No vulnerable URLs found.")
